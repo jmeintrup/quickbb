@@ -1,0 +1,15 @@
+cmake_install.cmake
+CMakeCache.txt
+*.dot
+*.DOT
+*.gr
+*.GR
+*.json
+*.JSON
+*.cbp
+main
+quickBB
+.idea/
+CMakeFiles/
+Makefile
+cmake-build-debug/
