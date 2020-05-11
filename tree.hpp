@@ -22,6 +22,14 @@ class Tree {
     return _m_data.end();
   }
 
+  auto begin() const {
+    return _m_data.cbegin();
+  }
+
+  auto end() const {
+    return _m_data.cend();
+  }
+
   tree_node_t &addNode(vertex_index_t v) {
     if (_m_data.find(v) == _m_data.end()) {
       _m_data[v] = tree_node_t();

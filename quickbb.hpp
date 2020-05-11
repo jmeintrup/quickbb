@@ -3,6 +3,7 @@
 
 #include <set>
 #include <utility>
+#include <chrono>
 #include "graph.hpp"
 #include "_types.hpp"
 #include "tree.hpp"
@@ -99,14 +100,9 @@ size_t lower_bound(const Graph &graph) {
 
     auto cmp = [graph_copy, neighbors](vertex_index_t u, vertex_index_t v) {
       auto u_nb = graph_copy.getNeighborhood(u);
-      std::set<vertex_index_t> u_tmp(std::begin(u_nb), std::end(u_nb));
-      u_tmp.insert(std::begin(neighbors), std::end(neighbors));
 
       auto v_nb = graph_copy.getNeighborhood(v);
-      std::set<vertex_index_t> v_tmp(std::begin(v_nb), std::end(v_nb));
-      v_tmp.insert(std::begin(neighbors), std::end(neighbors));
-
-      return u_tmp.size() < v_tmp.size();
+      return u_nb.size() < v_nb.size();
     };
 
     if (!neighbors.empty()) {
@@ -122,7 +118,9 @@ size_t lower_bound(const Graph &graph) {
   return max_degree;
 }
 
-std::pair<size_t, adj_arr_t> quickbb(Graph graph) {
+std::pair<size_t, adj_arr_t> quickbb(Graph graph, size_t alloted_time) {
+  auto start = std::chrono::steady_clock::now();
+
   auto upper_bound_pair =
       upper_bound(graph);
   auto lb =
@@ -131,22 +129,27 @@ std::pair<size_t, adj_arr_t> quickbb(Graph graph) {
   auto best_order = upper_bound_pair.first;
   auto best_upper_bound = upper_bound_pair.second;
 
-  size_t best_count = 0;
-
   adj_arr_t order;
 
   std::function<void(Graph &, adj_arr_t, size_t, size_t)> bb;
 
-  bb = [&bb,
+  bb = [
+      alloted_time,
+      start,
+      &bb,
       &best_upper_bound,
       &best_order,
-      lb,
-      best_count]
+      lb]
       (Graph &graph, adj_arr_t order, size_t f, size_t g) mutable {
-    best_count++;
+    auto time = std::chrono::steady_clock::now() - start;
+    auto time_in_seconds = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+    if (time_in_seconds > alloted_time) {
+      return;
+    }
     if (graph.order() < 2 && f < best_upper_bound) {
       assert(f == g);
       best_upper_bound = f;
+      std::cout << "found new best upperbound: " << best_upper_bound << std::endl;
       best_order = adj_arr_t(order);
       for (const auto &v : graph) {
         best_order.emplace_back(v.first);
@@ -175,12 +178,14 @@ std::pair<size_t, adj_arr_t> quickbb(Graph graph) {
         }
       }
     }
-
   };
 
   if (lb < best_upper_bound) {
     bb(graph, order, lb, 0);
   }
+  auto time = std::chrono::steady_clock::now() - start;
+  auto time_in_seconds = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+  std::cout << "found elimination order with width " << best_upper_bound << " in " << time_in_seconds << " seconds." << std::endl;
   return {best_upper_bound, best_order};
 }
 

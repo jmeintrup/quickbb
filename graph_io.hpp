@@ -6,52 +6,46 @@
 #include <set>
 #include <sstream>
 
-void write_dot(const Graph &g, const std::string &fileName) {
-  std::ofstream file;
-  file.open(fileName);
-  file << "graph {" << std::endl;
+void write_dot(const Graph &g, std::ostream &os) {
+  os << "graph {" << std::endl;
   std::set<std::pair<vertex_index_t, vertex_index_t>> duplicate;
   for (const auto &a : g) {
     auto v = a.first;
     auto neighborhood = a.second;
     for (auto u : neighborhood) {
       if (!duplicate.contains({u, v}) && !duplicate.contains({v, u})) {
-        file << "\t" << v << " -- " << u << std::endl;
+        os << "\t" << v << " -- " << u << std::endl;
         duplicate.insert({u, v});
       }
 
     }
   }
-  file << "}" << std::endl;
-  file.close();
+  os << "}" << std::endl;
 }
-void write_dot(const Tree &t, const std::string &fileName) {
-  std::ofstream file;
-  file.open(fileName);
-  file << "digraph {" << std::endl;
+void write_dot(const Tree &t, std::ostream &os) {
+  os << "digraph {" << std::endl;
   std::function<void(vertex_index_t)> rec;
-  rec = [t, &rec, &file](vertex_index_t id) {
+  rec = [t, &rec, &os](vertex_index_t id) {
     const auto &node = t.getNode(id);
-    file << "\t" << id << " [label = \"{";
+    os << "\t" << id << " [label = \"{";
     auto i{0};
     for(auto v : node._bag) {
       if(i++ == node._bag.size() - 1) {
-        file << v;
+        os << v;
       } else {
-        file << v << ", ";
+        os << v << ", ";
       }
     }
-    file << "}\"]" << std::endl;
+    os << "}\"]" << std::endl;
     for(auto c : node._children) {
       rec(c);
     }
     for(auto c : node._children) {
-      file << "\t" << id << " -> " << c << std::endl;
+      os << "\t" << id << " -> " << c << std::endl;
     }
   };
   rec(t.getRoot());
-  file << "}" << std::endl;
-  file.close();
+  os << "}" << std::endl;
 }
 void write_json(const Graph &g, const std::string &fileName) {
   std::ofstream file;
@@ -107,4 +101,46 @@ void write_pace(const Graph &g, const std::string &fileName) {
   }
   file.close();
 }
+
+void write_pace(const Tree &t, size_t tw, size_t order, std::ostream &os) {
+  os << "s td" << " " << t.order() << " " << tw << " " << order << std::endl;
+  for(const auto& n : t) {
+    os << n.first << " ";
+    size_t i{0};
+    for(const auto &v : n.second._bag) {
+      if(i == n.second._bag.size() - 1) {
+        os << v;
+      } else {
+        os << v << " ";
+      }
+    }
+    os << std::endl;
+  }
+  for(const auto& n : t) {
+    if(!n.second._children.empty()) {
+      for(const auto &v : n.second._children) {
+        os << n.first << " " << v << std::endl;
+      }
+    }
+  }
+}
+
+Graph read_pace(std::istream& in) {
+  Graph graph;
+
+  for (std::string line; std::getline(in, line);) {
+    if(line[0] == 'c' || line[0] == 'p' || line[0] == '#') {
+      continue;
+    } else {
+      vertex_index_t u;
+      vertex_index_t v;
+      std::stringstream ss;
+      ss<<line;
+      ss>>u>>v;
+      graph.addEdge(u, v);
+    }
+  }
+  return graph;
+}
+
 #endif //QUICKBB_GRAPH_IO_HPP
